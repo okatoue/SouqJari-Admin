@@ -31,7 +31,9 @@ export function useAdminAuth() {
         id,
         user_id,
         role,
-        is_active
+        is_active,
+        created_at,
+        created_by
       `)
       .eq('user_id', userId)
       .eq('is_active', true)
@@ -41,7 +43,7 @@ export function useAdminAuth() {
       return null
     }
 
-    return data as AdminUser
+    return data as unknown as AdminUser
   }, [supabase])
 
   useEffect(() => {
