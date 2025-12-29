@@ -10,6 +10,9 @@ interface CookieToSet {
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
+  // Store cookies that need to be set
+  let pendingCookies: CookieToSet[] = []
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -19,6 +22,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet: CookieToSet[]) {
+          pendingCookies = cookiesToSet
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
@@ -31,37 +35,45 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Redirect unauthenticated users to login
-  if (!user && !request.nextUrl.pathname.startsWith('/login')) {
+  // Helper to create redirect with cookies
+  const createRedirect = (pathname: string, searchParams?: Record<string, string>) => {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+    url.pathname = pathname
+    if (searchParams) {
+      Object.entries(searchParams).forEach(([key, value]) => {
+        url.searchParams.set(key, value)
+      })
+    }
+    const response = NextResponse.redirect(url)
+    // Apply any pending cookies to the redirect response
+    pendingCookies.forEach(({ name, value, options }) => {
+      response.cookies.set(name, value, options)
+    })
+    return response
   }
 
-  // Check if user is admin (only for dashboard routes)
-  if (user && request.nextUrl.pathname.startsWith('/')) {
-    // Skip admin check for auth routes
-    if (!request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/api/auth')) {
-      const { data: adminUser } = await supabase
-        .from('admin_users')
-        .select('role, is_active')
-        .eq('user_id', user.id)
-        .single()
+  // Redirect unauthenticated users to login
+  if (!user && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/api/auth')) {
+    return createRedirect('/login')
+  }
 
-      if (!adminUser || !adminUser.is_active) {
-        // Not an admin - sign out and redirect to unauthorized page
-        await supabase.auth.signOut()
-        const url = request.nextUrl.clone()
-        url.pathname = '/login'
-        url.searchParams.set('error', 'unauthorized')
-        return NextResponse.redirect(url)
-      }
+  // For authenticated users accessing protected routes, check admin status
+  if (user && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/api/auth')) {
+    const { data: adminUser, error } = await supabase
+      .from('admin_users')
+      .select('role, is_active')
+      .eq('user_id', user.id)
+      .single()
+
+    if (error || !adminUser || !adminUser.is_active) {
+      // Not an admin - sign out and redirect to unauthorized page
+      await supabase.auth.signOut()
+      return createRedirect('/login', { error: 'unauthorized' })
     }
   }
 
   // Redirect authenticated admins away from login
   if (user && request.nextUrl.pathname === '/login') {
-    // Verify they're actually an admin before redirecting
     const { data: adminUser } = await supabase
       .from('admin_users')
       .select('role, is_active')
@@ -69,9 +81,7 @@ export async function middleware(request: NextRequest) {
       .single()
 
     if (adminUser && adminUser.is_active) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/'
-      return NextResponse.redirect(url)
+      return createRedirect('/')
     }
   }
 
