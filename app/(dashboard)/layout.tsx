@@ -16,23 +16,11 @@ export default async function DashboardLayout({
   }
 
   // Get admin user data
-  const { data: adminUser, error: adminError } = await supabase
+  const { data: adminUser } = await supabase
     .from('admin_users')
-    .select(`
-      id,
-      user_id,
-      role,
-      is_active,
-      created_at,
-      created_by
-    `)
+    .select('id, user_id, role, is_active, created_at')
     .eq('user_id', user.id)
     .single()
-
-  // Debug logging - remove in production
-  console.log('Admin check - User ID:', user.id)
-  console.log('Admin check - Query result:', adminUser)
-  console.log('Admin check - Query error:', adminError)
 
   if (!adminUser || !adminUser.is_active) {
     redirect('/login?error=unauthorized')
