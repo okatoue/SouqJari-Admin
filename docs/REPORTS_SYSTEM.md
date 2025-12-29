@@ -138,29 +138,38 @@ CREATE TABLE admin_audit_log (
 
 ### Permissions Setup
 
-**CRITICAL**: The admin panel requires proper permissions to access tables.
+**CRITICAL**: The admin panel requires TWO types of permissions:
+1. **GRANT** - Table-level access (required even if RLS is disabled)
+2. **RLS Policies** - Row-level access control
 
-#### Option A: Disable RLS (Simplest)
+#### Step 1: Grant Table Permissions (REQUIRED)
+```sql
+-- Grant table-level permissions to authenticated role
+GRANT SELECT, INSERT, UPDATE, DELETE ON reports TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON admin_audit_log TO authenticated;
+GRANT SELECT ON admin_users TO authenticated;
+```
+
+#### Step 2: Handle RLS (Choose One)
+
+**Option A: Disable RLS (Simplest for admin-only tables)**
 ```sql
 ALTER TABLE admin_users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE reports DISABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_audit_log DISABLE ROW LEVEL SECURITY;
 ```
 
-#### Option B: Keep RLS + Grant Permissions
+**Option B: Keep RLS with Permissive Policies**
 ```sql
--- Grant table-level permissions
-GRANT SELECT, INSERT, UPDATE, DELETE ON reports TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON admin_audit_log TO authenticated;
-GRANT SELECT ON admin_users TO authenticated;
-
--- Create permissive policies
+-- Create permissive policies for admin access
 CREATE POLICY "admin_read_reports" ON reports
   FOR SELECT TO authenticated USING (true);
 
 CREATE POLICY "admin_update_reports" ON reports
   FOR UPDATE TO authenticated USING (true);
 ```
+
+> **Note**: Even with RLS disabled, you MUST run the GRANT commands. RLS and GRANT are separate permission systems in PostgreSQL.
 
 ### Checking Permissions
 
