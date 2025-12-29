@@ -6,6 +6,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'images.souqjari.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'api.souqjari.com',
+      },
     ],
   },
 };
