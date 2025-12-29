@@ -1,9 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
-import { UsersPageClient } from '@/components/users/UsersPageClient'
+import { ListingDetailPageClient } from '@/components/listings/ListingDetailPageClient'
 import type { AdminUser } from '@/types'
 
-export default async function UsersPage() {
+interface ListingDetailPageProps {
+  params: Promise<{ id: string }>
+}
+
+export default async function ListingDetailPage({ params }: ListingDetailPageProps) {
+  const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -14,17 +19,23 @@ export default async function UsersPage() {
     .single()
 
   const typedAdminUser = adminUser as AdminUser | null
+  const listingId = parseInt(id, 10)
 
   return (
     <div className="flex flex-col">
       <Header
-        title="Users"
+        title="Listing Details"
         adminUser={typedAdminUser}
         userEmail={user?.email}
       />
 
       <div className="flex-1 space-y-6 p-6">
-        {typedAdminUser && <UsersPageClient adminUser={typedAdminUser} />}
+        {typedAdminUser && (
+          <ListingDetailPageClient
+            listingId={listingId}
+            adminUser={typedAdminUser}
+          />
+        )}
       </div>
     </div>
   )

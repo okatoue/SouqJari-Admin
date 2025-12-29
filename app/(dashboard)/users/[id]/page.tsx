@@ -1,9 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
-import { UsersPageClient } from '@/components/users/UsersPageClient'
+import { UserDetailPageClient } from '@/components/users/UserDetailPageClient'
 import type { AdminUser } from '@/types'
 
-export default async function UsersPage() {
+interface UserDetailPageProps {
+  params: Promise<{ id: string }>
+}
+
+export default async function UserDetailPage({ params }: UserDetailPageProps) {
+  const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -18,13 +23,18 @@ export default async function UsersPage() {
   return (
     <div className="flex flex-col">
       <Header
-        title="Users"
+        title="User Details"
         adminUser={typedAdminUser}
         userEmail={user?.email}
       />
 
       <div className="flex-1 space-y-6 p-6">
-        {typedAdminUser && <UsersPageClient adminUser={typedAdminUser} />}
+        {typedAdminUser && (
+          <UserDetailPageClient
+            userId={id}
+            adminUser={typedAdminUser}
+          />
+        )}
       </div>
     </div>
   )
