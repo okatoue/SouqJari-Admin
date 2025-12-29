@@ -11,64 +11,10 @@ interface ReportWithHistory extends Report {
 async function fetchReport(id: string): Promise<ReportWithHistory> {
   const supabase = createClient()
 
-  // Fetch the report with all related data
+  // Fetch the report - simplified query without joins
   const { data: report, error: reportError } = await supabase
     .from('reports')
-    .select(`
-      *,
-      reporter:profiles!reporter_id(
-        id,
-        email,
-        display_name,
-        avatar_url,
-        phone_number,
-        moderation_status,
-        warning_count,
-        created_at
-      ),
-      reported_user:profiles!reported_user_id(
-        id,
-        email,
-        display_name,
-        avatar_url,
-        phone_number,
-        moderation_status,
-        suspension_until,
-        ban_reason,
-        warning_count,
-        created_at
-      ),
-      reported_listing:listings!reported_listing_id(
-        id,
-        user_id,
-        title,
-        description,
-        price,
-        currency,
-        images,
-        status,
-        location,
-        moderation_status,
-        removal_reason,
-        removed_at,
-        created_at,
-        seller:profiles!user_id(
-          id,
-          email,
-          display_name,
-          avatar_url,
-          moderation_status
-        )
-      ),
-      resolved_by_admin:admin_users!resolved_by(
-        id,
-        role,
-        profile:profiles(
-          display_name,
-          email
-        )
-      )
-    `)
+    .select('*')
     .eq('id', id)
     .single()
 
@@ -76,7 +22,7 @@ async function fetchReport(id: string): Promise<ReportWithHistory> {
     throw reportError
   }
 
-  // Fetch action history from audit log for this report and related targets
+  // Fetch action history from audit log for this report
   const targetIds = [id]
   if (report.reported_user_id) {
     targetIds.push(report.reported_user_id)
@@ -87,18 +33,7 @@ async function fetchReport(id: string): Promise<ReportWithHistory> {
 
   const { data: auditLogs, error: auditError } = await supabase
     .from('admin_audit_log')
-    .select(`
-      *,
-      admin:admin_users(
-        id,
-        role,
-        profile:profiles(
-          display_name,
-          email,
-          avatar_url
-        )
-      )
-    `)
+    .select('*')
     .in('target_id', targetIds)
     .order('created_at', { ascending: false })
 

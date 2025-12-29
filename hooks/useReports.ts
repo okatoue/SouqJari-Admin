@@ -29,51 +29,10 @@ async function fetchReports(
   const from = pageParam * pageSize
   const to = from + pageSize - 1
 
+  // Simple query without joins - relationships may not be configured
   let query = supabase
     .from('reports')
-    .select(`
-      *,
-      reporter:profiles!reporter_id(
-        id,
-        email,
-        display_name,
-        avatar_url,
-        moderation_status,
-        warning_count,
-        created_at
-      ),
-      reported_user:profiles!reported_user_id(
-        id,
-        email,
-        display_name,
-        avatar_url,
-        moderation_status,
-        suspension_until,
-        ban_reason,
-        warning_count,
-        created_at
-      ),
-      reported_listing:listings!reported_listing_id(
-        id,
-        user_id,
-        title,
-        description,
-        price,
-        currency,
-        images,
-        status,
-        location,
-        moderation_status,
-        removal_reason,
-        created_at,
-        seller:profiles!user_id(
-          id,
-          email,
-          display_name,
-          avatar_url
-        )
-      )
-    `, { count: 'exact' })
+    .select('*', { count: 'exact' })
 
   // Apply status filter
   if (options.status && options.status !== 'all') {
