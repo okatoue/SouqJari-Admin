@@ -39,7 +39,7 @@ export async function middleware(request: NextRequest) {
       const { data: adminUser } = await supabase
         .from('admin_users')
         .select('role, is_active')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single()
 
       if (!adminUser || !adminUser.is_active) {
@@ -59,7 +59,7 @@ export async function middleware(request: NextRequest) {
     const { data: adminUser } = await supabase
       .from('admin_users')
       .select('role, is_active')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (adminUser && adminUser.is_active) {

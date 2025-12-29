@@ -10,8 +10,8 @@ export default async function ReportsPage() {
 
   const { data: adminUser } = await supabase
     .from('admin_users')
-    .select('id, role, created_at, created_by, is_active')
-    .eq('id', user?.id)
+    .select('id, user_id, role, is_active')
+    .eq('user_id', user?.id)
     .single()
 
   const typedAdminUser = adminUser as AdminUser | null

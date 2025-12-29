@@ -20,12 +20,11 @@ export default async function DashboardLayout({
     .from('admin_users')
     .select(`
       id,
+      user_id,
       role,
-      created_at,
-      created_by,
       is_active
     `)
-    .eq('id', user.id)
+    .eq('user_id', user.id)
     .single()
 
   if (!adminUser || !adminUser.is_active) {

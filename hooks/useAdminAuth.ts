@@ -29,12 +29,11 @@ export function useAdminAuth() {
       .from('admin_users')
       .select(`
         id,
+        user_id,
         role,
-        created_at,
-        created_by,
         is_active
       `)
-      .eq('id', userId)
+      .eq('user_id', userId)
       .eq('is_active', true)
       .single()
 
