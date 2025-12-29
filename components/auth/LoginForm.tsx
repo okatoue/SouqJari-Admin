@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -26,6 +26,17 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null)
 
   const unauthorizedError = searchParams.get('error') === 'unauthorized'
+
+  // Sign out the user if they were redirected with unauthorized error
+  useEffect(() => {
+    if (unauthorizedError) {
+      const signOut = async () => {
+        const supabase = createClient()
+        await supabase.auth.signOut()
+      }
+      signOut()
+    }
+  }, [unauthorizedError])
 
   const {
     register,
