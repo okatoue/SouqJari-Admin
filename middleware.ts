@@ -33,17 +33,12 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  // Refresh session - this is critical for server components
   const { data: { user } } = await supabase.auth.getUser()
 
   // Helper to create redirect with cookies
-  const createRedirect = (pathname: string, searchParams?: Record<string, string>) => {
-    const url = request.nextUrl.clone()
-    url.pathname = pathname
-    if (searchParams) {
-      Object.entries(searchParams).forEach(([key, value]) => {
-        url.searchParams.set(key, value)
-      })
-    }
+  const createRedirect = (pathname: string) => {
+    const url = new URL(pathname, request.url)
     const response = NextResponse.redirect(url)
     // Apply any pending cookies to the redirect response
     pendingCookies.forEach(({ name, value, options }) => {
@@ -52,37 +47,24 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // Redirect unauthenticated users to login
-  if (!user && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/api/auth')) {
+  const isLoginPage = request.nextUrl.pathname === '/login'
+  const isAuthCallback = request.nextUrl.pathname.startsWith('/api/auth')
+
+  // Skip auth routes
+  if (isAuthCallback) {
+    return supabaseResponse
+  }
+
+  // Redirect unauthenticated users to login (except if already on login page)
+  if (!user && !isLoginPage) {
     return createRedirect('/login')
   }
 
-  // For authenticated users accessing protected routes, check admin status
-  if (user && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/api/auth')) {
-    const { data: adminUser, error } = await supabase
-      .from('admin_users')
-      .select('role, is_active')
-      .eq('user_id', user.id)
-      .single()
-
-    if (error || !adminUser || !adminUser.is_active) {
-      // Not an admin - sign out and redirect to unauthorized page
-      await supabase.auth.signOut()
-      return createRedirect('/login', { error: 'unauthorized' })
-    }
-  }
-
-  // Redirect authenticated admins away from login
-  if (user && request.nextUrl.pathname === '/login') {
-    const { data: adminUser } = await supabase
-      .from('admin_users')
-      .select('role, is_active')
-      .eq('user_id', user.id)
-      .single()
-
-    if (adminUser && adminUser.is_active) {
-      return createRedirect('/')
-    }
+  // Redirect authenticated users away from login page
+  // But NOT if there's an error param (means they were redirected from dashboard as non-admin)
+  // Note: Admin check happens in the dashboard layout, not here
+  if (user && isLoginPage && !request.nextUrl.searchParams.has('error')) {
+    return createRedirect('/')
   }
 
   return supabaseResponse
