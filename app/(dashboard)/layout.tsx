@@ -22,7 +22,9 @@ export default async function DashboardLayout({
       id,
       user_id,
       role,
-      is_active
+      is_active,
+      created_at,
+      created_by
     `)
     .eq('user_id', user.id)
     .single()
@@ -31,7 +33,7 @@ export default async function DashboardLayout({
     redirect('/login?error=unauthorized')
   }
 
-  const typedAdminUser = adminUser as AdminUser
+  const typedAdminUser = adminUser as unknown as AdminUser
 
   return (
     <div className="flex h-screen overflow-hidden">
