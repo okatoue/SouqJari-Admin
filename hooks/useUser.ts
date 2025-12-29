@@ -73,20 +73,10 @@ async function fetchUser(id: string): Promise<UserWithDetails | null> {
     console.error('Error fetching feedback:', feedbackError)
   }
 
-  // Fetch audit log for this user
+  // Fetch audit log for this user (without joins - relationships may not be configured)
   const { data: auditLog, error: auditError } = await supabase
     .from('admin_audit_log')
-    .select(`
-      *,
-      admin:admin_users (
-        id,
-        role,
-        profile:profiles (
-          display_name,
-          email
-        )
-      )
-    `)
+    .select('*')
     .eq('target_type', 'user')
     .eq('target_id', id)
     .order('created_at', { ascending: false })
