@@ -36,23 +36,10 @@ async function fetchListings(
   const from = pageParam * pageSize
   const to = from + pageSize - 1
 
-  // Build query with seller profile join
+  // Simple query without joins - relationships may not be configured
   let query = supabase
     .from('listings')
-    .select(`
-      *,
-      seller:profiles!user_id (
-        id,
-        email,
-        phone_number,
-        display_name,
-        avatar_url,
-        email_verified,
-        created_at,
-        moderation_status,
-        warning_count
-      )
-    `, { count: 'exact' })
+    .select('*', { count: 'exact' })
 
   // Search filter (title and description)
   if (options.search) {
